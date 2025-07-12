@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: stg_telegram_images
+    description: "Staging model for Telegram images extracted from raw data."
+    columns:
+      - name: image_id
+        description: "Unique identifier for each Telegram image."
+        tests:
+          - unique
+          - not_null
+      - name: image_url
+        description: "URL of the Telegram image."
+        tests:
+          - not_null
+      - name: image_date
+        description: "Date when the image was sent or posted."
+
+  - name: stg_telegram_messages
+    description: "Staging model for Telegram messages extracted from the raw source."
+    columns:
+      - name: message_id
+        description: "Primary key for the message."
+        tests:
+          - unique
+          - not_null
+
+      - name: channel_id
+        description: "ID of the Telegram channel the message was sent in."
+        tests:
+          - not_null
+
+      - name: message_text
+        description: "Text content of the message."
+        tests: []
+
+      - name: message_date
+        description: "Timestamp of when the message was sent."
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - message_id

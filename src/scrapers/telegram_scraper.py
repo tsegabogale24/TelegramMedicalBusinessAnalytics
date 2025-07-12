@@ -1,52 +1,68 @@
 import os
-import sys
-sys.path.append('..')
 import json
-from datetime import datetime
-import logging
-from telethon.tl.functions.messages import GetHistoryRequest
-from src.config.settings import client
-from src.utils.logger import ensure_dir
+import psycopg2
+from pathlib import Path
+from tqdm import tqdm
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# 🔌 PostgreSQL connection details
+conn = psycopg2.connect(
+    dbname="your_db",
+    user="your_user",
+    password="your_password",
+    host="localhost",
+    port="5432"
+)
+cur = conn.cursor()
 
-async def scrape_text_messages(channel_url, limit=100):
-    entity = await client.get_entity(channel_url)
-    today = datetime.utcnow().strftime('%Y-%m-%d')
-    folder = os.path.join(PROJECT_ROOT, "data", "raw", "telegram_messages", today, entity.username)
-    ensure_dir(folder)
+# 🏗️ Create schema and table
+cur.execute("""
+CREATE SCHEMA IF NOT EXISTS raw;
+CREATE TABLE IF NOT EXISTS raw.telegram_messages (
+    id TEXT PRIMARY KEY,
+    message_date DATE,
+    channel TEXT,
+    file_path TEXT,
+    raw_json JSONB
+);
+""")
 
-    history = await client(GetHistoryRequest(
-        peer=entity,
-        limit=limit,
-        offset_date=None,
-        offset_id=0,
-        max_id=0,
-        min_id=0,
-        add_offset=0,
-        hash=0
-    ))
+# 📂 Base directory
+base_path = Path("../data/raw/telegram_messages")
 
-    enriched_messages = []
+# 🔍 Recursively find all JSON files under date/channel_name/
+json_files = list(base_path.rglob("*.json"))
 
-    for msg in history.messages:
-        msg_dict = msg.to_dict()
+print(f"📄 Found {len(json_files)} JSON files.")
 
-        # Extract basic media metadata if media exists
-        if msg.media:
-            msg_dict['media_info'] = {
-                'caption': getattr(msg.media, 'caption', None),
-                'media_type': msg.media.__class__.__name__,
-                'mime_type': getattr(msg.media, 'mime_type', None),
-                'size': getattr(msg.media, 'size', None),
-                'file_reference': str(getattr(msg.media, 'file_reference', b'').hex()),
-            }
+for file_path in tqdm(json_files, desc="Loading messages"):
+    try:
+        # Extract date and channel from path
+        parts = file_path.parts
+        date_index = parts.index("telegram_messages") + 1
+        message_date = parts[date_index]
+        channel_name = parts[date_index + 1]
 
-        enriched_messages.append(msg_dict)
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            for message in data:
+                message_id = message.get("id")
+                if message_id:
+                    cur.execute("""
+                        INSERT INTO raw.telegram_messages (id, message_date, channel, file_path, raw_json)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON CONFLICT (id) DO NOTHING;
+                    """, (
+                        str(message_id),
+                        message_date,
+                        channel_name,
+                        str(file_path),
+                        json.dumps(message)
+                    ))
+    except Exception as e:
+        print(f"❌ Error processing {file_path}: {e}")
 
-    file_path = os.path.join(folder, 'all_messages_with_metadata.json')
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(enriched_messages, f, ensure_ascii=False, indent=2, default=str)
+conn.commit()
+cur.close()
+conn.close()
 
-    logging.info(f"Scraped {len(enriched_messages)} messages (including media metadata) from {channel_url}")
-    return history.messages, entity.username, today
+print("✅ Done loading Telegram messages into PostgreSQL.")
