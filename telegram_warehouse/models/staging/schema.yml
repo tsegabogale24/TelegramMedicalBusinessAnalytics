@@ -24,16 +24,13 @@ models:
         tests:
           - unique
           - not_null
-
       - name: channel_id
         description: "ID of the Telegram channel the message was sent in."
         tests:
           - not_null
-
       - name: message_text
         description: "Text content of the message."
         tests: []
-
       - name: message_date
         description: "Timestamp of when the message was sent."
         tests:
@@ -43,3 +40,37 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - message_id
+
+  - name: stg_image_detections
+    description: "Staging model for image object detections from raw.image_detections."
+    columns:
+      - name: detection_id
+        description: "Unique identifier for each detection (from raw table)."
+        tests:
+          - unique
+          - not_null
+      - name: image_id
+        description: "Foreign key referencing the image from stg_telegram_images."
+        tests:
+          - not_null
+      - name: detected_class
+        description: "The object class predicted by the detection model (e.g., 'bottle', 'clock')."
+        tests:
+          - not_null
+      - name: confidence_score
+        description: "Confidence score (between 0 and 1) for the detected class."
+        tests:
+          - not_null
+  - name: dim_classes
+    description: "Dimension table of unique object classes detected from images."
+    columns:
+      - name: class_id
+        description: "Unique ID for each object class."
+        tests:
+          - unique
+          - not_null
+      - name: class_name
+        description: "The raw name of the detected class (lowercased and trimmed)."
+        tests:
+          - unique
+          - not_null
