@@ -12,7 +12,8 @@ class TopProductSchema(BaseModel):
     count: int
 
     class Config:
-        orm_mode = True
+      from_attributes = True
+
 
 
 class MessageSchema(BaseModel):
@@ -25,7 +26,7 @@ class MessageSchema(BaseModel):
     product_name: Optional[str]
 
     class Config:
-        orm_mode = True
+      from_attributes = True
 
 
 
@@ -35,7 +36,8 @@ class ChannelSchema(BaseModel):
     channel_type: Optional[str] = None
 
     class Config:
-        orm_mode = True
+      from_attributes = True
+  
 
 
 class DateSchema(BaseModel):
@@ -48,7 +50,8 @@ class DateSchema(BaseModel):
     week: int
 
     class Config:
-        orm_mode = True
+      from_attributes = True
+
 
 
 
@@ -60,4 +63,4 @@ class ImageDetectionSchema(BaseModel):
     image_url: Optional[str]
 
     class Config:
-        orm_mode = True
+       from_attributes = True
