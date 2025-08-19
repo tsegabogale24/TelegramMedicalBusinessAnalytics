@@ -1,6 +1,7 @@
 # schemas.py
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 # schemas.py
 from pydantic import BaseModel
 from typing import Optional
@@ -18,8 +19,8 @@ class TopProductSchema(BaseModel):
 
 class MessageSchema(BaseModel):
     message_id: int
-    channel_id: Optional[int]
-    date_id: Optional[int]
+    channel_name: Optional[str]
+    message_date: Optional[datetime]
     message_text: Optional[str]
     message_length: Optional[int]
     has_image: Optional[bool]
@@ -31,12 +32,7 @@ class MessageSchema(BaseModel):
 
 
 class ChannelSchema(BaseModel):
-    channel_id: int
     channel_name: str
-    channel_type: Optional[str] = None
-
-    class Config:
-      from_attributes = True
   
 
 

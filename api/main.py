@@ -15,9 +15,14 @@ def get_db():
     finally:
         db.close()
 
+@app.get("/api/channels", response_model=list[str])
+def read_channels(db: Session = Depends(get_db)):
+    return crud.get_all_channels(db)
+
+
 @app.get("/api/reports/top-products", response_model=List[schemas.TopProductSchema])
-def read_top_products(limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_top_products(db, limit)
+def read_top_products(limit: int = 10, strategy: str = "whitelist", db: Session = Depends(get_db)):
+    return crud.get_top_products(db, limit, strategy)
 
 @app.get("/api/channels/{channel_name}/activity")
 def read_channel_activity(channel_name: str, db: Session = Depends(get_db)):
@@ -27,3 +32,5 @@ def read_channel_activity(channel_name: str, db: Session = Depends(get_db)):
 @app.get("/api/search/messages", response_model=List[schemas.MessageSchema])
 def search_messages(query: str, db: Session = Depends(get_db)):
     return crud.search_messages(db, query)
+
+
